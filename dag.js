@@ -59,7 +59,7 @@ var force = d3.layout.force()
     .charge(-300);
 // Run the simulation a few times to settle things down.
 force.start();
-for (var i = 0; i < 30; i++) { force.tick(); }
+for (var i = 0; i < 100; i++) { force.tick(); }
 force.stop();
 
 // Create a separate set of node objects for DAG, so the index values don't collide.
@@ -127,7 +127,7 @@ svg.append('g').selectAll('.node')
     .data(force.nodes())
     .enter().append('g')
         .attr('class', 'node')
-        .call(force.drag);
+//        .call(force.drag);
 var svgNodes = svg.selectAll('.node')
 svgNodes.append('circle')
     .attr('r', 5);
@@ -181,7 +181,9 @@ function tick() {
 }
 // Everything is ready. Start the simulation!
 force.start()
-    .on('tick', tick);
+    .on('tick', tick)
+    .tick().tick();
+force.stop();
 
 
 
@@ -205,13 +207,21 @@ function dagLayout(nodes, links, svgWidth, svgHeight) {
 
   // Calculate X values.
   nodes.forEach(function(node) {
+    // Determine the minimum X value.
     node.x = d3.max(node.parents, function(node) { return node.x; }) + 1 || 0;
   });
   nodes.forEach(function(node) {
+    // If a node has children farther in the future, push it towards them.
     var maxX = d3.min(node.children, function(node) { return node.x; }) - 1;
-    node.x = maxX ? maxX : node.x;
+    if (maxX) {
+      console.log('moving X ' + node.x + ' -> ' + maxX);
+      node.x = maxX;
+    }
+    // node.x = maxX ? maxX : node.x;
   });
   nodes.sort(function(a, b) { return a.x - b.x; });
+  console.log('SORTED:');
+  console.log(nodes);
 
   // Stateful function to remember which spots are "taken".
   var nearestY = (function() {
@@ -223,7 +233,7 @@ function dagLayout(nodes, links, svgWidth, svgHeight) {
         y += 1;
       }
       taken[x][y] = true;
-      // console.log('nearestY(' + x + ',' + oldY + ') -> ' + y);
+      console.log('nearestY(' + x + ',' + oldY + ') -> ' + y);
       return y;
     };
   })();
@@ -234,15 +244,17 @@ function dagLayout(nodes, links, svgWidth, svgHeight) {
   var placementIndex = 0;
   nodes.forEach(function(node) {
     if (node.parents.length == 0) {
-      node.y = nearestY(0, 0);
-      node.label += ' (' + placementIndex++ + ')';
+      node.y = nearestY(node.x, 0);
+      node.label += ' -(' + placementIndex++ + ')';
+      console.log('Placed ' + node.label);
     } else if (onlyChild(node)) {
       // Skip. This node has already been placed.
+      return;
     } else {
-      var maxX = d3.max(node.parents, function(p) { return p.x; });
       var avgY = Math.floor(d3.mean(node.parents, function(p) { return p.y; }));
       node.y = nearestY(node.x, avgY);
-      node.label += ' (' + placementIndex++ + ')';
+      node.label += ' M(' + placementIndex++ + ')';
+      console.log('Placed ' + node.label);
     }
 
     while (node.children.length == 1 && onlyChild(node.children[0])) {
@@ -250,6 +262,7 @@ function dagLayout(nodes, links, svgWidth, svgHeight) {
       child.y = nearestY(child.x, node.y);
       node = child;
       node.label += ' +(' + placementIndex++ + ')';
+      console.log('Placed ' + node.label);
     }
   });
 
