@@ -1,8 +1,8 @@
 
 
 // Generate DAG
-var nodeCount = 8;
-var svgWidth = 900, svgHeight = 300;
+var nodeCount = 20;
+var svgWidth = 900, svgHeight = 800;
 // The nodes are indexed by topological sort.
 var nodes = d3.range(nodeCount).map(function(d) {
   return { index: d, label: 'node ' + d };
@@ -15,7 +15,7 @@ var links = d3.range(nodeCount * nodeCount).map(function(i) {
 }).filter(function(link) {
   // Automatically reject edges that are against the topological sort.
   // Otherwise, allow a random subset of possible edges.
-  return link.target > link.source && Math.random() > 0.7;
+  return link.target > link.source && Math.random() > 0.9;
 });
 
 // Returns a helper function that takes two node indexes, and returns true if
